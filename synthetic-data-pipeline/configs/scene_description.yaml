@@ -1,0 +1,34 @@
+isaacsim.replicator.object:
+  version: 0.3.21
+  output_path: /your/output/path
+  screen_height: 1080
+  screen_width: 1920
+  num_frames: 10000  # the training/validation/testing set
+  seed: 42
+
+  cameras:
+    - name: spot_front_camera
+      path: /World/Spot/Camera
+      position: [0.2, 0.0, 0.3]
+      rotation: [0, 0, 0]
+      fov: 90
+      resolution: [1920, 1080]
+    # assumed that we only use this camera for object detection task
+
+  mutables:
+    - name: target_object
+      path: /World/Objects/target_object
+      usd: /path/to/your/object.usd
+      randomize:
+        count: [0, 5]
+        position:
+          x: [-1.0, 1.0]
+          y: [-1.0, 1.0]
+          z: [0.0, 1.0]
+        rotation:
+          x: [0, 360]
+          y: [0, 360]
+          z: [0, 360]
+    # other mutables: like 
+  writer:
+    types: ["rgb", "bounding_box_2d", "semantic_segmentation"]

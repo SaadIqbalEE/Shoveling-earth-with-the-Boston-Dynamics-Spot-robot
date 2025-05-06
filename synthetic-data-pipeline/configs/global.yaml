@@ -1,0 +1,7 @@
+isaacsim.replicator.object:
+  version: 0.3.21
+  output_path: /absolute/path/to/output
+  screen_height: 1080  # image in real-time object detection network
+  screen_width: 1920  # image in real-time object detection network
+  num_frames: 10000  # overall generation image (preferable 6:3:1 generation)
+  seed: 42

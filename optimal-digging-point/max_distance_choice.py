@@ -1,0 +1,1 @@
+# Function: Given a 2D image, choose a point whose possess biggest Euclidean Distance

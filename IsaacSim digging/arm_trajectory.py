@@ -85,7 +85,7 @@ class spot_arm_trajectory():
             articulation_trajectory_timestamped = ArticulationTrajectory(self._articulation, trajectory_timestamped, physics_dt)
             self._action_sequence.extend(articulation_trajectory_timestamped.get_action_sequence())
 
-    def update(self, step: float):
+    def update(self):
         if len(self._action_sequence) == 0:
             return
 

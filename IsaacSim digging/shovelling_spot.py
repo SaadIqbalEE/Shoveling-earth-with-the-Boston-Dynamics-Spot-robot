@@ -76,6 +76,7 @@ else:
     while kit.is_running():
         # Run in realtime mode, we don't specify the step size
         kit.update()
+        # Execute defined arm trajectory
         #if arm_setup is False:
         #    spot_arm.setup()
         #    spot_arm.setup_cspace_trajectory()

@@ -4,7 +4,7 @@ import os
 import carb
 from isaacsim.core.utils.extensions import get_extension_path_from_name
 from isaacsim.core.utils.stage import add_reference_to_stage
-from isaacsim.core.prims import Articulation
+from isaacsim.core.prims import SingleArticulation
 from isaacsim.core.utils.nucleus import get_assets_root_path
 from isaacsim.core.api.objects.cuboid import FixedCuboid
 from isaacsim.core.prims import XFormPrim
@@ -30,8 +30,8 @@ class spot_arm_trajectory():
         self._articulation = None
 
     def setup(self):
-        robot_prim_path = "/World/spot_with_arm"
-        self._articulation = Articulation(robot_prim_path)
+        robot_prim_path = "/World/spot"
+        self._articulation = SingleArticulation(robot_prim_path)
 
         # Config files for supported robots are stored in the motion_generation extension under "/motion_policy_configs"
         #mg_extension_path = get_extension_path_from_name("isaacsim.robot_motion.motion_generation")
@@ -50,15 +50,25 @@ class spot_arm_trajectory():
 
         self._end_effector_name = "arm0_link_ee"
 
-    def setup_cspace_trajectory(self):
-        c_space_points = np.array([
+    def setup_cspace_trajectory(self, position, orientation, dig_type):
+        if dig_type == "dig":
+            c_space_points = np.array()
+            convergence = np.array([
             [1 , 0.5 , 1 , 1 , 1 , 0 , ],
             [1 , 0.5 , 1.1 , 1.1 , 1 , 0 , ],
             [1 , 0.4 , 1.2 , 1.1 , 1 , 0, ],
             [1 , 0.4 , 1.3 , 1.2 , 1 , 0 , ]
             ])
+            timestamps = np.array([0,5,10,13])
 
-        timestamps = np.array([0,5,10,13])
+        elif dig_type == "dump":
+            c_space_points, convergence = np.array([
+                [1 , 0.5 , 1 , 1 , 1 , 0 , ],
+                [1 , 0.5 , 1.1 , 1.1 , 1 , 0 , ],
+                [1 , 0.4 , 1.2 , 1.1 , 1 , 0, ],
+                [1 , 0.4 , 1.3 , 1.2 , 1 , 0 , ]
+                ])
+            timestamps = np.array([0,5,10,13])
 
         trajectory_time_optimal = self._c_space_trajectory_generator.compute_c_space_trajectory(c_space_points)
         trajectory_timestamped = self._c_space_trajectory_generator.compute_timestamped_c_space_trajectory(c_space_points,timestamps)
@@ -87,14 +97,20 @@ class spot_arm_trajectory():
 
     def update(self):
         if len(self._action_sequence) == 0:
+            print("zero length")
             return
 
         if self._action_sequence_index >= len(self._action_sequence):
+            print("resetting")
             self._action_sequence_index += 1
             self._action_sequence_index %= len(self._action_sequence) + 10 # Wait 10 frames before repeating trajectories
             return
 
         if self._action_sequence_index == 0:
+            none_indices = [i for i, x in enumerate(self._action_sequence) if x is None]
+            if none_indices:
+                print(f"action sequence contains None at indices: {none_indices}")
+            print("at teleport step, action sequence has length: " + str(len(self._action_sequence)))
             self._teleport_robot_to_position(self._action_sequence[0])
 
         self._articulation.apply_action(self._action_sequence[self._action_sequence_index])

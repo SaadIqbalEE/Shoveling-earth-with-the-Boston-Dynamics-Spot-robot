@@ -9,6 +9,7 @@
 
 import argparse
 import sys
+import numpy as np
 
 from isaacsim import SimulationApp
 
@@ -34,7 +35,7 @@ if assets_root_path is None:
     sys.exit()
     
 # usd path to spot environment    
-usd_path = "/home/rllab/Desktop/25P24/IsaacEnvironments/Environment1.usd"
+usd_path = "/home/rllab/Desktop/25P24/IsaacEnvironments/testEnvironment.usd"
 
 # make sure the file exists before we try to open it
 try:
@@ -57,6 +58,13 @@ kit.update()
 print("Loading stage...")
 from isaacsim.core.utils.stage import is_stage_loading
 from isaacsim.core.api import World
+from isaacsim.core.prims import Articulation
+from isaacsim.robot_motion.motion_generation import (
+    LulaCSpaceTrajectoryGenerator,
+    LulaKinematicsSolver,
+    ArticulationTrajectory,
+    ArticulationKinematicsSolver
+)
 
 world = World()
 world.reset()
@@ -67,6 +75,24 @@ while is_stage_loading():
 print("Loading Complete")
 omni.timeline.get_timeline_interface().play()
 arm_setup = False
+
+#testing
+#robot_prim_path = "/World/spot_with_arm"
+#articulation = Articulation(robot_prim_path)
+#kinematics_solver = LulaKinematicsSolver(
+#    robot_description_path = "/home/rllab/Desktop/25P24/Isaac_spot_tutorials/asset/spot.yaml",
+#    urdf_path = "/home/rllab/Desktop/25P24/Isaac_spot_tutorials/asset/spot.urdf"
+#)
+#articulation_kinematics = ArticulationKinematicsSolver(
+#    articulation,
+#    kinematics_solver,
+#    "arm0_link_ee"
+#)
+def prim_exists(path):
+    stage = omni.usd.get_context().get_stage()
+    return stage.GetPrimAtPath(path).IsValid()
+assert prim_exists("/World/spot"), "Robot prim /World/spot_with_arm does not exist!"
+
 # Run in test mode, exit after a fixed number of steps
 if test is True:
     for i in range(10):
@@ -77,11 +103,17 @@ else:
         # Run in realtime mode, we don't specify the step size
         kit.update()
         # Execute defined arm trajectory
-        #if arm_setup is False:
-        #    spot_arm.setup()
-        #    spot_arm.setup_cspace_trajectory()
-        #    arm_setup = True
-        #spot_arm.update()
+        if arm_setup is False:
+            #action, truthValue = articulation_kinematics.compute_inverse_kinematics(
+            #    np.array([0, 0, 1.0]),
+            #    np.array([0, 0, 0])
+            #)
+            #articulation.apply_action(action)
+            spot_arm.setup()
+            print("DOFs in robot:", spot_arm._articulation.dof_names)
+            spot_arm.setup_cspace_trajectory()
+            arm_setup = True
+        spot_arm.update()
         
 
 omni.timeline.get_timeline_interface().stop()

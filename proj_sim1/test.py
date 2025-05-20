@@ -191,11 +191,27 @@ executor.add_node(camera_pub)
 ros_thread = Thread(target=executor.spin, daemon=True)
 ros_thread.start()
 
+# Arm trajectory class
+import arm_trajectory
+spot_arm = arm_trajectory.spot_arm_trajectory()
+setup_arm = True # True if need for arm setup, False if already setup
+trajectory_done = False
+
 # Main Loop
 while simulation_app.is_running():
     ros_interface.publish_state()
     camera_pub.publish()
     world.step(render=True)
+    if setup_arm is True:
+        # Setup arm trajectory
+        spot_arm.setup(spot) # Articulation as argument
+        dig_position = np.array([1, 0, 0]) # x, y, z coordinates for dig target
+        spot_arm.setup_cspace_trajectory(dig_position, "dig") # Create trajectory, "dig" for digging, "dump" for dumping earth
+        setup_arm = False
+    if trajectory_done is False:
+        arm_step = spot_arm.update()
+        if arm_step is True: # Check if trajectory is complete
+            trajectory_done = True
 
 # Cleanup
 simulation_app.close()

@@ -50,21 +50,26 @@ class spot_arm_trajectory():
         self._end_effector_name = "arm0_link_ee"
 
     def setup_cspace_trajectory(self, position, dig_type):
+        arm_joint_names = ["arm0_sh0", "arm0_sh1", "arm0_el0", "arm0_el1", "arm0_wr0", "arm0_wr1"]
+        joint_name_to_index = {name: i for i, name in enumerate(self._articulation.dof_names)}
+        full_joint_positions = self._articulation.get_joint_positions()
+        arm_joint_positions = [full_joint_positions[joint_name_to_index[name]] for name in arm_joint_names]
+
         if dig_type == "dig":
-            p1 = self._articulation.get_joint_positions()
-            p2, succ2 = self._kinematics_solver.compute_inverse_kinematics(self._end_effector_name, [position[0], position[1], position[2]+0.2], [1, 40, 0, 0])
-            p3, succ3 = self._kinematics_solver.compute_inverse_kinematics(self._end_effector_name, position, [1, 40, 0, 0])
-            p4, succ4 = self._kinematics_solver.compute_inverse_kinematics(self._end_effector_name, [position[0], position[1]-0.1, position[2]], [1, 0, 0, 0])
-            p5, succ4 = self._kinematics_solver.compute_inverse_kinematics(self._end_effector_name, [position[0], position[1]-0.1, position[2]+0.2], [1, 0, 0, 0])
+            p1 = arm_joint_positions
+            p2 = self._kinematics_solver.compute_inverse_kinematics(self._end_effector_name, np.array([position[0], position[1], position[2]+0.3]), np.array([1, 0, 0, 0]))[0]
+            p3 = self._kinematics_solver.compute_inverse_kinematics(self._end_effector_name, position, np.array([1, 0, 0, 0]))[0]
+            p4 = self._kinematics_solver.compute_inverse_kinematics(self._end_effector_name, np.array([position[0], position[1]-0.2, position[2]]), np.array([1, 0, 0, 0]))[0]
+            p5 = self._kinematics_solver.compute_inverse_kinematics(self._end_effector_name, np.array([position[0], position[1]-0.2, position[2]+0.3]), np.array([1, 0, 0, 0]))[0]
             c_space_points = np.array([p1, p2, p3, p4, p5])
             timestamps = np.array([0, 5, 10, 13, 18])
 
         elif dig_type == "dump":
-            p1 = self._articulation.get_joint_positions()
-            p2, succ2 = self._kinematics_solver.compute_inverse_kinematics(self._end_effector_name, [position[0], position[1], position[2]+0.2], [1, 40, 0, 0])
-            p3, succ3 = self._kinematics_solver.compute_inverse_kinematics(self._end_effector_name, position, [1, 40, 0, 0])
-            p4, succ4 = self._kinematics_solver.compute_inverse_kinematics(self._end_effector_name, [position[0], position[1]-0.1, position[2]], [1, 0, 0, 0])
-            p5, succ4 = self._kinematics_solver.compute_inverse_kinematics(self._end_effector_name, [position[0], position[1]-0.1, position[2]+0.2], [1, 0, 0, 0])
+            p1 = arm_joint_positions
+            p2 = self._kinematics_solver.compute_inverse_kinematics(self._end_effector_name, np.array([position[0], position[1], position[2]+0.2]), np.array([1, 1, 0, 0]))[0]
+            p3 = self._kinematics_solver.compute_inverse_kinematics(self._end_effector_name, position, np.array([1, 1, 0, 0]))[0]
+            p4 = self._kinematics_solver.compute_inverse_kinematics(self._end_effector_name, np.array([position[0], position[1]-0.1, position[2]]), np.array([1, 0, 0, 0]))[0]
+            p5 = self._kinematics_solver.compute_inverse_kinematics(self._end_effector_name, np.array([position[0], position[1]-0.1, position[2]+0.2]), np.array([1, 0, 0, 0]))[0]
             c_space_points = np.array([p1, p2, p3, p4, p5])
             timestamps = np.array([0, 5, 10, 13, 18])
 
@@ -90,12 +95,12 @@ class spot_arm_trajectory():
     def update(self):
         if len(self._action_sequence) == 0:
             print("zero length trajectory") # no trajectory found
-            return "done"
+            return True
 
         if self._action_sequence_index >= len(self._action_sequence):
             print("trajectory done")
             self._action_sequence_index = 0 # finished trajectory
-            return "done"
+            return True
 
         if self._action_sequence_index == 0:
             none_indices = [i for i, x in enumerate(self._action_sequence) if x is None]
@@ -106,7 +111,7 @@ class spot_arm_trajectory():
 
         self._articulation.apply_action(self._action_sequence[self._action_sequence_index])
         self._action_sequence_index += 1
-        return "doing"
+        return False
 
     def reset(self):
         # Delete any visualized frames

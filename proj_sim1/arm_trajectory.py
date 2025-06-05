@@ -267,14 +267,6 @@ class spot_arm_trajectory():
         self._action_sequence_index += 1
         return False
 
-    def reset(self):
-        # Delete any visualized frames
-        if get_prim_at_path("/visualized_frames"):
-            delete_prim("/visualized_frames")
-
-        self._action_sequence = []
-        self._action_sequence_index = 0
-
     def _teleport_robot_to_position(self, articulation_action):
         initial_positions = np.zeros(self._articulation.num_dof)
         initial_positions[articulation_action.joint_indices] = articulation_action.joint_positions

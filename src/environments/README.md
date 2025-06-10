@@ -65,7 +65,6 @@ To ensure proper traction for the Spot robot:
 Isaac Sim’s GPU-accelerated Position-Based Dynamics (PBD) particle system is used to simulate sand-like granular behavior.
 
 ### Particle Configuration
-- **Type:** Particle Set with `PointsInstancer` prims
 - **Sampler:** Particle Sampler used on a mesh to generate initial positions
 - **Solid Rest Offset:** `0.015` (controls particle spacing)
 

@@ -39,13 +39,13 @@ class spot_arm_trajectory():
 
         #Initialize a LulaCSpaceTrajectoryGenerator object
         self._c_space_trajectory_generator = LulaCSpaceTrajectoryGenerator(
-            robot_description_path = "/home/rllab/Desktop/25P24/Isaac_spot_tutorials/asset/spot.yaml",
-            urdf_path = "/home/rllab/Desktop/25P24/Isaac_spot_tutorials/asset/spot.urdf"
+            robot_description_path = "./modified_asset/spot.yaml",
+            urdf_path = "./modified_asset/spot.urdf"
         )
 
         self._kinematics_solver = LulaKinematicsSolver(
-            robot_description_path = "/home/rllab/Desktop/25P24/Isaac_spot_tutorials/asset/spot.yaml",
-            urdf_path = "/home/rllab/Desktop/25P24/Isaac_spot_tutorials/asset/spot.urdf"
+            robot_description_path = "./modified_asset/spot.yaml",
+            urdf_path = "./modified_asset/spot.urdf"
         )
 
         self._end_effector_name = "arm0_link_ee"

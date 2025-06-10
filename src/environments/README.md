@@ -11,13 +11,35 @@ The simulation environment is based on the Isaac Sim scene `warehouse_with_forkl
 - Imported obstacle elements (shovel and rock) as STL files.
 - A Spot robot model with friction-tuned ground interaction.
 
-### Files
+### Files in the `environments` Folder
 
-- `Environment_with_obstacles.usd`  
-  Contains the rock obstacle placed in the center of the sandbox. Sandbox walls are positioned in cardinal directions (spaced).
+- **Environment_with_obstacles.usd**  
+  Contains the rock obstacle placed in the center of the sandbox. Sandbox walls are spaced in the cardinal directions.
 
-- `Environment_with_containers_nearby.usd`  
-  Same as above, but the container-like sandbox walls are placed closer together.
+- **Environment_with_containers_nearby.usd**  
+  Similar to the above, but the sandbox walls (container-like) are positioned closer together.
+
+- **Garden Shovel - Large.usd**  
+  USD-converted garden shovel asset used as an obstacle/tool.
+
+- **Rock-7-solid.usd**  
+  Rock formation asset used for obstacle placement.
+
+- **spot_arm_plastic_shovel.usd**  
+  A plastic shovel attached to the Spot robot's arm.
+
+### Supporting Folders
+
+These three subfolders contain all the dependencies required for the environments and assets to function properly in Isaac Sim:
+
+- **materials/**  
+  Contains all material definitions (e.g., textures, shaders) used across assets.
+
+- **modified_asset/**  
+  Holds customized versions of assets, such as collision-mesh-altered models or adjusted properties for simulation.
+
+- **spot_arm/**  
+  Includes dependencies specific to the Spot robot’s arm, including its mounted shovel and any joint configurations or mechanical extensions.
 
 ## Key Setup Details
 

@@ -1,8 +1,12 @@
+###############################################
+# Launch and Setup Isaac Sim with ROS2 Bridge #
+###############################################
+
 # Launch Isaac Sim
 from isaacsim.simulation_app import SimulationApp
 simulation_app = SimulationApp({"headless": False})
 
-# Isaac Sim and USD imports
+# Imports for simulation control, USD manipulation, physics, and camera
 from isaacsim.core.api.world import World
 from isaacsim.core.utils.stage import add_reference_to_stage, is_stage_loading
 from pxr import Usd, UsdGeom, UsdPhysics, PhysxSchema, Gf, Sdf
@@ -12,7 +16,7 @@ import omni.usd
 import carb
 import numpy as np
 
-# ROS2 Imports
+# ROS2 and threading imports
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
@@ -20,21 +24,25 @@ from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import JointState, Image
 from cv_bridge import CvBridge
 from std_msgs.msg import String
-
-# Threading
 from threading import Thread
 
-# Isaac Sim Camera
+# Isaac Sim Camera support
 from isaacsim.sensors.camera import Camera
 
+########################################
+# ROS2 Camera Publisher Implementation #
+########################################
 class CameraPublisher(Node):
+    """
+    ROS2 Node that publishes camera images from Isaac Sim to a ROS2 Image topic.
+    """
     def __init__(self, camera_prim_path, name):
         super().__init__('camera_publisher')
         self.publisher = self.create_publisher(Image, '/front_cam/'+name, 10)
         self.bridge = CvBridge()
         self.camera = Camera(camera_prim_path)
         self.camera.initialize()
-        self.camera.set_resolution((640, 480)) # Ensure usable resolution
+        self.camera.set_resolution((640, 480))
         print("Camera initialized:", self.camera.is_valid())
 
     def publish(self):
@@ -47,7 +55,14 @@ class CameraPublisher(Node):
         ros_image = self.bridge.cv2_to_imgmsg(rgb_image, encoding="rgb8")
         self.publisher.publish(ros_image)
 
+#####################################
+# ROS2 Spot Robot State Broadcaster #
+#####################################
 class SpotROSInterface(Node):
+    """
+    ROS2 Node to interface with the Spot robot: publishes joint and pose states,
+    subscribes to control commands.
+    """
     def __init__(self, spot, world):
         super().__init__('spot_ros_interface')
         self.spot = spot
@@ -56,7 +71,6 @@ class SpotROSInterface(Node):
         self.joint_pub = self.create_publisher(JointState, '/spot/joint_states', 10)
         self.pose_pub = self.create_publisher(PoseStamped, '/spot/world_pose', 10)
 
-        # Subscriber
         self.control_sub = self.create_subscription(
             String,
             '/robot_control',
@@ -65,6 +79,7 @@ class SpotROSInterface(Node):
         )
 
     def publish_state(self):
+        # Publish robot's pose and joint states to ROS2 topics
         pose_msg = PoseStamped()
         position, orientation = self.spot.get_world_pose()
 
@@ -87,7 +102,7 @@ class SpotROSInterface(Node):
         self.joint_pub.publish(joint_msg)
 
     def control_callback(self, msg: String):
-        """Parses command string and applies it to the Spot robot."""
+        # Handle incoming robot control command
         self.get_logger().info(f"Received command: {msg.data}")
         try:
             command_parts = msg.data.strip().split(',')
@@ -108,10 +123,12 @@ class SpotROSInterface(Node):
         except Exception as e:
             self.get_logger().error(f"Failed to parse command: {e}")
 
+##########################
+# Command Logic Handlers #
+##########################
 _base_command = np.zeros(3)
 needs_reset = False
 first_step = True
-
 bool_dig = False
 bool_dmp = False
 world_point = [0,0,0]
@@ -120,16 +137,19 @@ dig_err = False
 dmp_err = False
 executing_trejectory = False
 setup_arm = True
-def execute_walk(directon):
+
+# Movement command execution functions
+def execute_walk(direction):
+    """Handle robot movement direction commands"""
     global _base_command
-    dir = ''.join(directon)
+    dir = ''.join(direction)
     direction_map = {
         '1000':'upward',
         '0100':'left',
         '0010':'downward',
         '0001':'right'
-        }
-    print(f'I\'m moving in {direction_map[dir]} direction, man')
+    }
+    print(f"I'm moving in {direction_map[dir]} direction, man")
     if direction_map[dir] == 'upward':
         _base_command += np.array([1,0,0])
     elif direction_map[dir] == 'downward':
@@ -138,54 +158,52 @@ def execute_walk(directon):
         _base_command += np.array([0,1,0])
     elif direction_map[dir] == 'right':
         _base_command += np.array([0,-1,0])
-    else:
-        _base_command = np.array([0,0,0])
 
-def execute_dig(): #world_cor
+# Digging and dumping handlers
+def execute_dig():
+    """Initiate digging operation"""
     world_cor = [-2.49, -1.70, 0]
     global bool_dig, world_point, local_point
-    print('I\'m Digging the earth, man')
+    print("I'm Digging the earth, man")
     world.remove_physics_callback("spot_forward")
-    #digging!
     prim_spot = stage.GetPrimAtPath(OBJ_PRIM_PATH)
     xform = UsdGeom.Xformable(prim_spot)
     local_to_world_matrix = xform.ComputeLocalToWorldTransform(Usd.TimeCode.Default())
     world_to_local_matrix = local_to_world_matrix.GetInverse()
-    world_point = Gf.Vec3d(world_cor[0], world_cor[1], world_cor[2]) # Dig point in world coordinates x, y, z
+    world_point = Gf.Vec3d(*world_cor)
     local_point = world_to_local_matrix.Transform(world_point)
     bool_dig = True
-    pass
 
 def execute_dump():
+    """Initiate dump operation"""
     global bool_dmp
-    print('I\'m dumping the soil, man')
+    print("I'm dumping the soil, man")
     world.remove_physics_callback("spot_forward")
-    #dumping!
     bool_dmp = True
-    pass
 
 def execute_rotcw():
     global _base_command
-    print('I\'m rotating clockwise, man')
+    print("I'm rotating clockwise, man")
     _base_command += np.array([0,0,-1])
-    pass
 
 def execute_rotccw():
     global _base_command
-    print('I\'m rotating anti-clockwise, man')
+    print("I'm rotating anti-clockwise, man")
     _base_command += np.array([0,0,1])
-    pass
 
-# === FILE PATHS ===
+##############################
+# Simulation Initialization  #
+##############################
+# Paths to assets and objects
 ENVIRONMENT_USD_PATH = "./Environment_with_obstacles.usd"
-OBJECT_USD_PATH = "./spot_arm_plastic_shovel.usd" #spot USD
+OBJECT_USD_PATH = "./spot_arm_plastic_shovel.usd"
 ENV_PRIM_PATH = "/World/Environment"
 OBJ_PRIM_PATH = "/World/spot"
 CAMERA_PRIM_PATHL = "/World/spot/body/frontright_fisheye"
 CAMERA_PRIM_PATHR = "/World/spot/body/frontright_fisheye"
 OBJECT_POSITION = (-3.4, -2, 0.7)
 
-# === Load Environment USD Stage ===
+# Load environment USD
 try:
     result = omni.usd.get_context().open_stage(ENVIRONMENT_USD_PATH)
     if not result:
@@ -195,61 +213,45 @@ except Exception as e:
     simulation_app.close()
     exit(1)
 
-# Wait until the stage is fully loaded
+# Wait for stage to load
 simulation_app.update()
 simulation_app.update()
 while is_stage_loading():
     simulation_app.update()
 
-# Load Spot robot
+# Set up simulation world and physics
 stage = omni.usd.get_context().get_stage()
-physics_dt = 1 / 200.0
-render_dt = 1 / 60.0
-world = World(stage_units_in_meters=1.0,physics_dt=physics_dt, rendering_dt=render_dt)
+world = World(stage_units_in_meters=1.0, physics_dt=1/200.0, rendering_dt=1/60.0)
 
-# Get current stage
-stage = omni.usd.get_context().get_stage()
-
-
-# Modify or create PhysicsScene at correct path
 physics_scene_path = "/World/physicsScene"
-# Get or define the PhysicsScene prim
 physics_scene_prim = stage.GetPrimAtPath(physics_scene_path)
 if not physics_scene_prim.IsValid():
     physics_scene_prim = stage.DefinePrim(physics_scene_path, "PhysicsScene")
+physics_scene_prim.CreateAttribute("physxEnableGpuDynamics", Sdf.ValueTypeNames.Bool).Set(True)
 
-# Add the attribute manually
-attr = physics_scene_prim.CreateAttribute("physxEnableGpuDynamics", Sdf.ValueTypeNames.Bool)
-attr.Set(True)
-
+# Add Spot robot to scene
 add_reference_to_stage(OBJECT_USD_PATH, OBJ_PRIM_PATH)
-
-# Set Object Transform
 object_prim = stage.GetPrimAtPath(OBJ_PRIM_PATH)
 if object_prim.IsValid():
     xform = UsdGeom.Xformable(object_prim)
     xform.ClearXformOpOrder()
     xform.AddTranslateOp().Set(OBJECT_POSITION)
+PhysxSchema.PhysxRigidBodyAPI.Apply(object_prim).CreateDisableGravityAttr().Set(False)
 
-# Enable Physics
-physx_root = PhysxSchema.PhysxRigidBodyAPI.Apply(object_prim)
-physx_root.CreateDisableGravityAttr().Set(False)
-
-# Start Simulation
+# Start world simulation
 world.reset()
-
-# Articulation Setup
 from omni.isaac.core.articulations import Articulation
 spot = Articulation(prim_path=OBJ_PRIM_PATH)
-
 for _ in range(30):
     world.step(render=False)
 
+###########################
+# Policy + Control Setup #
+###########################
 policy_path = "./spot_arm/models/spot_arm_policy.pt"
 policy_params_path = "./spot_arm/params/env.yaml"
-
 _spot = SpotArmFlatTerrainPolicy(
-    prim_path="/World/spot",
+    prim_path=OBJ_PRIM_PATH,
     name="spot",
     usd_path=OBJECT_USD_PATH,
     policy_path=policy_path,
@@ -258,7 +260,7 @@ _spot = SpotArmFlatTerrainPolicy(
 )
 
 def on_physics_step(step_size) -> None:
-    global first_step, needs_reset  # <-- Add this line
+    global first_step, needs_reset
     if first_step:
         _spot.initialize()
         first_step = False
@@ -271,8 +273,18 @@ def on_physics_step(step_size) -> None:
 
 world.add_physics_callback("spot_forward", callback_fn=on_physics_step)
 
+############################
+# Initialize ROS Interface #
+############################
 spot.initialize()
 controller = spot.get_articulation_controller()
+
+# Helper for initial pose
+joint_targets_ = {
+    "fl_hx": 0.0, "fr_hx": 0.0, "hl_hx": 0.0, "hr_hx": 0.0,
+    "fl_hy": 0.5, "fr_hy": 0.5, "hl_hy": 0.8, "hr_hy": 0.8,
+    "fl_kn": -1.2, "fr_kn": -1.2, "hl_kn": -1.5, "hr_kn": -1.5,
+}
 
 def stable_joint():
     current_positions_ = spot.get_joint_positions()
@@ -286,33 +298,23 @@ def stable_joint():
             print(f"Warning: Joint '{joint_name}' not found. {e}")
     return np.array([joint_targets[name] for name in spot.dof_names])
 
-# Optional: Set Initial Joint Positions
-joint_targets_ = {
-    "fl_hx": 0.0, "fr_hx": 0.0, "hl_hx": 0.0, "hr_hx": 0.0,
-    "fl_hy": 0.5, "fr_hy": 0.5, "hl_hy": 0.8, "hr_hy": 0.8,
-    "fl_kn": -1.2, "fr_kn": -1.2, "hl_kn": -1.5, "hr_kn": -1.5,
-}
-
-# Initialize ROS2
+# ROS Node initialization
 rclpy.init()
 ros_interface = SpotROSInterface(spot, world)
 camera_pubL = CameraPublisher(CAMERA_PRIM_PATHL, 'left')
 camera_pubR = CameraPublisher(CAMERA_PRIM_PATHR, 'right')
-
-# Combined Executor
 executor = MultiThreadedExecutor()
 executor.add_node(ros_interface)
 executor.add_node(camera_pubL)
 executor.add_node(camera_pubR)
-
 ros_thread = Thread(target=executor.spin, daemon=True)
 ros_thread.start()
 
-# Arm trajectory class
+# Arm trajectory setup
 import arm_trajectory
 spot_arm = arm_trajectory.spot_arm_trajectory()
 
-# Main Loop
+# Main simulation loop
 while simulation_app.is_running():
     ros_interface.publish_state()
     camera_pubL.publish()
@@ -320,8 +322,7 @@ while simulation_app.is_running():
     world.step(render=True)
 
     if setup_arm is True:
-        # Setup arm trajectory
-        spot_arm.setup(spot) # Setup with articulation as argument
+        spot_arm.setup(spot)
         setup_arm = False
 
     if bool_dig:
@@ -329,7 +330,7 @@ while simulation_app.is_running():
         dig_err = False
         spot.set_joint_positions(stable_joint())
         print("\nDigging position: " + str(world_point) + "\n")
-        trajectory = spot_arm.setup_cspace_trajectory(local_point, "dig") # Create trajectory, "dig" for digging
+        trajectory = spot_arm.setup_cspace_trajectory(local_point, "dig")
         if trajectory is False:
             if not world.physics_callback_exists("spot_forward"):
                 world.add_physics_callback("spot_forward", callback_fn=on_physics_step)
@@ -342,7 +343,7 @@ while simulation_app.is_running():
         bool_dmp = False
         dmp_err = False
         spot.set_joint_positions(stable_joint())
-        trajectory = spot_arm.setup_cspace_trajectory(np.array([0, 0, 0]), "dump") # Create trajectory, "dump" for dumping earth
+        trajectory = spot_arm.setup_cspace_trajectory(np.array([0, 0, 0]), "dump")
         if trajectory is False:
             print("\nCannot reach dumping position\n")
             if not world.physics_callback_exists("spot_forward"):
@@ -351,15 +352,14 @@ while simulation_app.is_running():
         else:
             executing_trejectory = True
 
-    
-    if executing_trejectory: # Check if we want to execute trajectory
-        arm_step = spot_arm.update() # Move arm one step
-        if arm_step is True: # Check if trajectory is complete
+    if executing_trejectory:
+        arm_step = spot_arm.update()
+        if arm_step is True:
             if not world.physics_callback_exists("spot_forward"):
                 world.add_physics_callback("spot_forward", callback_fn=on_physics_step)
             executing_trejectory = False
 
-# Cleanup
+# Shutdown and cleanup
 simulation_app.close()
 ros_interface.destroy_node()
 camera_pubL.destroy_node()

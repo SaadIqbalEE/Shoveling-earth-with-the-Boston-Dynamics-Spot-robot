@@ -39,7 +39,7 @@ These three subfolders contain all the dependencies required for the environment
   Holds customized versions of assets, such as collision-mesh-altered models or adjusted properties for simulation.
 
 - **spot_arm/**  
-  Includes dependencies specific to the Spot robot’s arm, including its mounted shovel and any joint configurations or mechanical extensions.
+  Includes dependencies specific to the Spot robot’s arm.
 
 ## Key Setup Details
 

@@ -1,19 +1,96 @@
-This folder contains the final code versions for excavation and dumping simulation. The robot's position is fixed. 
+# Spot Robot Excavation Simulation – Isaac Sim
 
-In arm_trajectory.py class spot_arm_trajectory has functions: 
+This directory contains the final simulation setup and code for demonstrating autonomous **excavation and dumping** behaviors using the **Boston Dynamics Spot robot** in **NVIDIA Isaac Sim**. The robot remains stationary and manipulates a shovel to dig and dump soil using pre-defined motion trajectories.
 
-setup(self, articulation) which takes in the Spot articulation and initializes the LulaCSpaceTrajectoryGenerator object and LulaKinematicSolver object which both take the .urdf and .yaml file locations as argument. Also, the end effector link name is defined. 
+## 📁 Directory Contents
 
-setup_cspace_trajectory(self, position, dig_type) which takes in the digging position as a Spot’s local coordinate and the arm action type. In our simulation code, the digging position is defined in global coordinates first and then transformed into local coordinates to use it as an argument. “dig” performs digging, “dump” dumping, and “test” both consecutively. This function generates a predefined-shape trajectory using the timestamped Lula C-Space Generator and the Lula Kinematics Solver. As of now, the digging motion happens only in a fixed global +x direction but will adjust the digging position based on the argument position. Z position of digging is also fixed. Therefore, in the position argument (x, y, z) only (x, y) are taken into account. Dumping is always a fixed trajectory. 
+```text
+DiggingFixedRobot/
+│
+├── Environment_with_containers_nearby.usd       # Main simulation environment
+├── 'Garden Shovel - Large.usd'                  # 3D asset of the shovel
+├── Rock-7-solid.usd                             # Rock/soil asset used during digging
+├── 'calibrate3 (2).usd'                         # Calibration reference submodule
+├── spot_with_shovel.usd                         # Spot robot with shovel attached
+│
+├── materials/                                   # Material assets used in the scene
+├── modified_asset/                              # Preprocessed assets (e.g. joint configs)
+│
+├── arm_trajectory.py                            # Arm motion logic and trajectory planning
+├── dig_and_dump_test.py                         # Main simulation entry point
+├── install.sh                                   # Environment setup script
+├── README.md
+```
 
-update(self) which applies the next action from the action sequence created by setup_cspace_trajectory to Spot articulation. This function is called on every step in the simulation when executing a trajectory. This function moves the arm one step forward. 
+## ⚙️ Prerequisites
 
-_teleport_robot_to_position(self, articulation_action) which as of now just sets joint velocities on the first step of the trajectory. 
+Before running the simulation:
 
-dig_and_dump_test.py is for simulating excavation and dumping. By launching this file in the Linux terminal with the Python executable python.sh in the Isaac Sim folder you can simulate excavation and dumping earth:  
+1. Set environment variables by sourcing the `install.sh` script:
 
-$ ISAACSIMPATH/python.sh CODEPATH/dig_and_dump_test.py 
+   ```bash
+   source ./install.sh
+   ```
 
-The correct .usd paths for the environment and the Spot model must be defined in dig_and_dump_test.py and correct .urdf and .yaml paths for Spot in arm_trajectory.py.  
+   Ensure the following variables are defined correctly inside `install.sh`:
 
-dig_and_dump_test.py calls the functions of spot_arm_trajectory class in arm_trajectory.py. The main loop executes digging, dumping, both or remains static based on what is defined as the arm action.
+   * `ISAACSIM_PATH`: Path to your NVIDIA Isaac Sim installation.
+   * `ISAACSIM_PYTHON_EXE`: Full path to Isaac Sim's Python executable (e.g. `${ISAACSIM_PATH}/python.sh`).
+
+## ▶️ How to Run
+
+To launch the simulation:
+
+```bash
+${ISAACSIM_PYTHON_EXE} dig_and_dump_test.py
+```
+
+This will simulate the robot performing digging and dumping operations within the given environment.
+
+## 🌍 Simulation Assets
+
+* **Environment**:
+  `Environment_with_containers_nearby.usd`
+  This scene includes containers and uses the following sub-assets:
+
+  * `Rock-7-solid.usd` (simulated soil)
+  * `'calibrate3 (2).usd'` (used for calibration or positioning)
+
+* **Spot Robot with Shovel**:
+  `spot_with_shovel.usd`
+  Built with the following dependencies:
+
+  * `'Garden Shovel - Large.usd'`
+  * `materials/` directory for rendering realism
+
+## 🧮 Arm Motion & Behavior
+
+**`arm_trajectory.py`** defines a `spot_arm_trajectory` class which includes:
+
+* `setup(articulation)`
+  Initializes the Lula C-Space Trajectory Generator and Kinematic Solver with Spot’s URDF and YAML configuration. Also sets the end-effector link.
+
+* `setup_cspace_trajectory(position, dig_type)`
+  Accepts digging position (converted from global to local coordinates) and the motion type:
+
+  * `"dig"`: performs digging motion
+  * `"dump"`: performs dumping motion
+  * `"test"`: runs both consecutively
+    The Z-axis is fixed, and only (x, y) are variable. Dumping uses a fixed trajectory.
+
+* `update()`
+  Advances the arm one step along the precomputed motion sequence.
+
+* `_teleport_robot_to_position()`
+  Currently sets joint velocities for the initial pose.
+
+The arm behavior is defined using data in the `modified_asset/` directory for joint reference.
+
+## 🧪 Main Simulation File
+
+**`dig_and_dump_test.py`** is the core simulation script. It:
+
+* Loads the Spot robot and environment
+* Uses `spot_arm_trajectory` to execute motion routines
+* Configures asset and robot paths internally
+* Cycles through the selected behavior (dig, dump, or both)

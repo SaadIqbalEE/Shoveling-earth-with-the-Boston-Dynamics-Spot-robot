@@ -4,7 +4,7 @@
 
 In this project, students will equip the Boston Dynamics quadruped robot, Spot, to perform the task of moving earth with a shovel. The challenge is to design and implement a system that allows the robot to interact with a simulated environment containing earth and rocks, which may be hidden, making the task of shoveling more complex. The robot will need to be capable of using a shovel to scoop earth and move around to select optimal locations for digging.
 
-The project will focus on overcoming the difficulties posed by hidden rocks and developing a robust approach for successful shoveling. This may involve either a machine learning-based method or a clever programming solution. The key tasks will include robotic manipulation, movement control, and obstacle detection, all requiring a strong grasp of robotics, Python programming, and possibly machine learning techniques.
+The project focuses on overcoming the difficulties posed by hidden rocks and developing a robust approach for successful shoveling. This may involve either a machine learning-based method or a clever programming solution. The key tasks will include robotic manipulation, movement control, and obstacle detection, all requiring a strong grasp of robotics, Python programming, and potentially machine learning techniques.
 
 ## Key Skills & Technologies
 
@@ -36,6 +36,27 @@ The project will focus on overcoming the difficulties posed by hidden rocks and 
 ## Getting Started
 
 To begin, clone the repository and follow the instructions in the installation guide. Ensure that you have ROS set up and configured for the Spot robot. The machine learning component (if applicable) will require additional libraries such as TensorFlow or PyTorch.
+
+## Repository Structure
+
+This repository contains the core components required to simulate and implement earth shoveling with the Boston Dynamics Spot robot. Below is a high-level overview of the directory layout:
+
+```
+.
+├── README.md
+├── IsaacSim-Simulation/
+│   ├── DiggingFixedRobot/             # Simulation with fixed robot setup
+│   └── DiggingWithLocomotion/         # Simulation involving locomotion and digging
+├── src/
+│   ├── environments/                  # Simulated environments for testing and training
+│   ├── optimal-digging-point/         # Algorithms to determine the best digging locations
+│   ├── spot-arm-manipulation/         # Modules for controlling Spot's arm and shovel
+│   ├── spot-fetch-images/             # Code for capturing images from Spot's sensors
+│   ├── spot-image-processing/         # Image analysis and processing utilities
+│   └── synthetic-data-pipeline/       # Tools to generate and manage synthetic data
+```
+
+Each directory is organized to support specific functionality of the robot—from environment modeling and motion control to perception and data processing. The `IsaacSim-Simulation` folder contains simulation setups developed using NVIDIA Isaac Sim to validate different shoveling behaviors under controlled conditions.
 
 ## Contributing
 

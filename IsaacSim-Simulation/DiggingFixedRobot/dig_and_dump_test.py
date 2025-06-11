@@ -85,7 +85,7 @@ ENVIRONMENT_USD_PATH = "./Environment_with_containers_nearby.usd"
 #ENVIRONMENT_USD_PATH = "/home/rllab/Desktop/25P24/IsaacEnvironments/Environment_with_obstacles.usd"
 # from david: test Environment1.usd for better adaptability (however, the stone is lost)
 # ENVIRONMENT_USD_PATH = "/home/rllab/Desktop/25P24/IsaacEnvironments/Environment1.usd"
-OBJECT_USD_PATH = "./spot_arm_plastic_shovel.usd"
+OBJECT_USD_PATH = "./spot_with_shovel.usd"
 #OBJECT_USD_PATH = "/home/rllab/Desktop/25P24/moving/spot_arm_shovel.usd"
 ENV_PRIM_PATH = "/World/Environment"
 #OBJ_PRIM_PATH = "/World/MyObject"
